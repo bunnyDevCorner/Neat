@@ -25,7 +25,7 @@ public class EntityRendererMixin {
 	private void neat_disableNameTag(Entity entity, float $$1, float $$2, PoseStack $$3, MultiBufferSource $$4, int $$5, CallbackInfo ci) {
 		NeatConfig.NameTagRenderBehavior renderBehavior = NeatConfig.instance.nameTagRenderBehavior();
 		if (renderBehavior != NeatConfig.NameTagRenderBehavior.ALWAYS &&
-				(renderBehavior == NeatConfig.NameTagRenderBehavior.FOR_NO_HEALTHBAR && neat$entityHasHealthbar(entity)) ||
+				(renderBehavior == NeatConfig.NameTagRenderBehavior.WHEN_NO_HEALTHBAR && neat$entityHasHealthbar(entity)) ||
 				renderBehavior == NeatConfig.NameTagRenderBehavior.NEVER) {
 			ci.cancel();
 		}

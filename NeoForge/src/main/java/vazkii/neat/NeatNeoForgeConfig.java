@@ -10,12 +10,12 @@ import java.util.List;
 
 public class NeatNeoForgeConfig {
 	public static void init(ModContainer container) {
-		Pair<ForgeNeatConfig, ModConfigSpec> specPair = new ModConfigSpec.Builder().configure(ForgeNeatConfig::new);
+		Pair<NeoForgeNeatConfig, ModConfigSpec> specPair = new ModConfigSpec.Builder().configure(NeoForgeNeatConfig::new);
 		NeatConfig.instance = specPair.getLeft();
 		container.registerConfig(ModConfig.Type.CLIENT, specPair.getRight());
 	}
 
-	private static class ForgeNeatConfig implements NeatConfig.ConfigAccess {
+	private static class NeoForgeNeatConfig implements NeatConfig.ConfigAccess {
 		private final ModConfigSpec.ConfigValue<Integer> maxDistance;
 		private final ModConfigSpec.ConfigValue<Integer> maxDistanceWithoutLineOfSight;
 		private final ModConfigSpec.ConfigValue<Boolean> renderInF1;
@@ -49,7 +49,7 @@ public class NeatNeoForgeConfig {
 		private final ModConfigSpec.ConfigValue<Boolean> enableDebugInfo;
 		private final ModConfigSpec.ConfigValue<List<? extends String>> blacklist;
 
-		public ForgeNeatConfig(ModConfigSpec.Builder builder) {
+		public NeoForgeNeatConfig(ModConfigSpec.Builder builder) {
 			builder.push("general");
 
 			maxDistance = builder.comment("Maximum distance in blocks at which health bars should render").define("max_distance", 24);
@@ -79,7 +79,7 @@ public class NeatNeoForgeConfig {
 			showFullHealth = builder.comment("Show bars for mobs that are at full health").define("show_entity_full_health", true);
 			enableDebugInfo = builder.comment("Show extra debug info on the bar when F3 is enabled").define("show_debug_with_f3", true);
 			showEntityName = builder.comment("Show entity name").define("show_entity_name", true);
-			nameTagRenderBehavior = builder.comment("Changes when the vanilla name tag should be rendered").defineEnum("name_tag_render_behavior", NeatConfig.NameTagRenderBehavior.FOR_NO_HEALTHBAR);
+			nameTagRenderBehavior = builder.comment("Changes when the vanilla name tag should be rendered").defineEnum("name_tag_render_behavior", NeatConfig.NameTagRenderBehavior.WHEN_NO_HEALTHBAR);
 			iconOffsetX = builder.comment("Offsets the healtbar icons on the x axis").define("icon_offset_x", 0.0);
 			iconOffsetY = builder.comment("Offsets the healtbar icons on the y axis").define("icon_offset_y", 0.0);
 			decimalFormat = builder.comment("This value changes the decimal format of the HP. Only change this value if you are familiar with how the decimal format works!").define("decimal_format", "#.##");

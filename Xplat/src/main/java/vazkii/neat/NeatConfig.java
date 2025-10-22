@@ -47,7 +47,7 @@ public class NeatConfig {
 	public enum NameTagRenderBehavior {
 		ALWAYS,
 		NEVER,
-		FOR_NO_HEALTHBAR
+		WHEN_NO_HEALTHBAR
 	}
 
 	public static ConfigAccess instance;
