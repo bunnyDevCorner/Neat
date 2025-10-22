@@ -23,7 +23,7 @@ public class NeatFabricConfig {
 		return AutoConfig.getConfigScreen(Client.class, parent);
 	}
 
-	@Config(name = NeatConfig.MOD_ID)
+	@Config(name = "neat-client")
 	private static class Client implements NeatConfig.ConfigAccess, ConfigData {
 		@Comment("Maximum distance in blocks at which health bars should render")
 		private int maxDistance;
