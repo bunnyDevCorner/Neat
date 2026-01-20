@@ -92,7 +92,7 @@ public class NeatFabricConfig {
 		private List<String> blacklist;
 
 		public Client() {
-			maxDistance = 24;
+			maxDistance = 12;
 			maxDistanceWithoutLineOfSight = 8;
 			renderInF1 = false;
 			heightAbove = 1.0D;
@@ -117,7 +117,7 @@ public class NeatFabricConfig {
 			showOnBosses = true;
 			showOnlyFocused = false;
 			showFullHealth = true;
-			enableDebugInfo = true;
+			enableDebugInfo = false;
 			showEntityName = true;
 			nameTagRenderBehavior = NeatConfig.NameTagRenderBehavior.WHEN_NO_HEALTHBAR;
 			iconOffsetX = 0.0;

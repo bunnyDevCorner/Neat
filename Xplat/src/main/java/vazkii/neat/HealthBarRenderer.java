@@ -119,7 +119,9 @@ public class HealthBarRenderer {
 			}
 			return 0xff000000 | r << 16 | g << 8 | b;
 		} else {
-			float health = Mth.clamp(entity.getHealth(), 0.0F, entity.getMaxHealth());
+			// Use animated health for color calculation too
+			float animatedHealth = HealthAnimationManager.getAnimatedHealth(entity);
+			float health = Mth.clamp(animatedHealth, 0.0F, entity.getMaxHealth());
 			float hue = Math.max(0.0F, (health / entity.getMaxHealth()) / 3.0F - 0.07F);
 			return Mth.hsvToRgb(hue, 1.0F, 1.0F);
 		}
@@ -214,9 +216,20 @@ public class HealthBarRenderer {
 		if (!(entity instanceof LivingEntity living)) {
 			return;
 		}
-		//This was previously mc.gameRenderer.getMainCamera().getEntity() but that caused an incompatibility with RealCamera
-		if (!shouldShowPlate(living, camera.getEntity())) {
+		
+		// Check if entity is fading out (even if dead/removed)
+		UUID entityId = living.getUUID();
+		boolean isFadingOut = HealthAnimationManager.isFadingOut(entityId);
+		
+		// Allow rendering during fade-out even if entity is dead
+		if (!isFadingOut && !shouldShowPlate(living, camera.getEntity())) {
 			return;
+		}
+		
+		// Get alpha value for fade-out
+		float alpha = HealthAnimationManager.getAlpha(entityId);
+		if (alpha <= 0.0F) {
+			return; // Fully faded, don't render
 		}
 
 		// Constants
@@ -255,11 +268,12 @@ public class HealthBarRenderer {
 			if (!NeatConfig.instance.showEntityName()) {
 				bgHeight -= (int) 4F;
 			}
+			int bgAlpha = (int) (60 * alpha);
 			VertexConsumer builder = buffers.getBuffer(NeatRenderType.BAR_TEXTURE_TYPE);
-			builder.addVertex(poseStack.last().pose(), -halfSize - padding, -bgHeight, 0.01F).setColor(0, 0, 0, 60).setUv(0.0F, 0.0F).setLight(light);
-			builder.addVertex(poseStack.last().pose(), -halfSize - padding, barHeight + padding, 0.01F).setColor(0, 0, 0, 60).setUv(0.0F, 0.5F).setLight(light);
-			builder.addVertex(poseStack.last().pose(), halfSize + padding, barHeight + padding, 0.01F).setColor(0, 0, 0, 60).setUv(1.0F, 0.5F).setLight(light);
-			builder.addVertex(poseStack.last().pose(), halfSize + padding, -bgHeight, 0.01F).setColor(0, 0, 0, 60).setUv(1.0F, 0.0F).setLight(light);
+			builder.addVertex(poseStack.last().pose(), -halfSize - padding, -bgHeight, 0.01F).setColor(0, 0, 0, bgAlpha).setUv(0.0F, 0.0F).setLight(light);
+			builder.addVertex(poseStack.last().pose(), -halfSize - padding, barHeight + padding, 0.01F).setColor(0, 0, 0, bgAlpha).setUv(0.0F, 0.5F).setLight(light);
+			builder.addVertex(poseStack.last().pose(), halfSize + padding, barHeight + padding, 0.01F).setColor(0, 0, 0, bgAlpha).setUv(1.0F, 0.5F).setLight(light);
+			builder.addVertex(poseStack.last().pose(), halfSize + padding, -bgHeight, 0.01F).setColor(0, 0, 0, bgAlpha).setUv(1.0F, 0.0F).setLight(light);
 		}
 
 		// Health Bar
@@ -270,27 +284,35 @@ public class HealthBarRenderer {
 			int b = argb & 0xFF;
 			// There are scenarios in vanilla where the current health
 			// can temporarily exceed the max health.
+			// Use animated health for smooth transitions
+			float animatedHealth = HealthAnimationManager.getAnimatedHealth(living);
 			float maxHealth = Math.max(living.getHealth(), living.getMaxHealth());
-			float healthHalfSize = halfSize * (living.getHealth() / maxHealth);
+			float healthHalfSize = halfSize * (animatedHealth / maxHealth);
+			
+			// Apply alpha to health bar
+			int barAlpha = (int) (127 * alpha);
 
 			VertexConsumer builder = buffers.getBuffer(NeatRenderType.BAR_TEXTURE_TYPE);
-			builder.addVertex(poseStack.last().pose(), -halfSize, 0, 0.001F).setColor(r, g, b, 127).setUv(0.0F, 0.75F).setLight(light);
-			builder.addVertex(poseStack.last().pose(), -halfSize, barHeight, 0.001F).setColor(r, g, b, 127).setUv(0.0F, 1.0F).setLight(light);
-			builder.addVertex(poseStack.last().pose(), -halfSize + 2 * healthHalfSize, barHeight, 0.001F).setColor(r, g, b, 127).setUv(1.0F, 1.0F).setLight(light);
-			builder.addVertex(poseStack.last().pose(), -halfSize + 2 * healthHalfSize, 0, 0.001F).setColor(r, g, b, 127).setUv(1.0F, 0.75F).setLight(light);
+			builder.addVertex(poseStack.last().pose(), -halfSize, 0, 0.001F).setColor(r, g, b, barAlpha).setUv(0.0F, 0.75F).setLight(light);
+			builder.addVertex(poseStack.last().pose(), -halfSize, barHeight, 0.001F).setColor(r, g, b, barAlpha).setUv(0.0F, 1.0F).setLight(light);
+			builder.addVertex(poseStack.last().pose(), -halfSize + 2 * healthHalfSize, barHeight, 0.001F).setColor(r, g, b, barAlpha).setUv(1.0F, 1.0F).setLight(light);
+			builder.addVertex(poseStack.last().pose(), -halfSize + 2 * healthHalfSize, 0, 0.001F).setColor(r, g, b, barAlpha).setUv(1.0F, 0.75F).setLight(light);
 
 			// Blank part of the bar
 			if (healthHalfSize < halfSize) {
-				builder.addVertex(poseStack.last().pose(), -halfSize + 2 * healthHalfSize, 0, 0.001F).setColor(0, 0, 0, 127).setUv(0.0F, 0.5F).setLight(light);
-				builder.addVertex(poseStack.last().pose(), -halfSize + 2 * healthHalfSize, barHeight, 0.001F).setColor(0, 0, 0, 127).setUv(0.0F, 0.75F).setLight(light);
-				builder.addVertex(poseStack.last().pose(), halfSize, barHeight, 0.001F).setColor(0, 0, 0, 127).setUv(1.0F, 0.75F).setLight(light);
-				builder.addVertex(poseStack.last().pose(), halfSize, 0, 0.001F).setColor(0, 0, 0, 127).setUv(1.0F, 0.5F).setLight(light);
+				builder.addVertex(poseStack.last().pose(), -halfSize + 2 * healthHalfSize, 0, 0.001F).setColor(0, 0, 0, barAlpha).setUv(0.0F, 0.5F).setLight(light);
+				builder.addVertex(poseStack.last().pose(), -halfSize + 2 * healthHalfSize, barHeight, 0.001F).setColor(0, 0, 0, barAlpha).setUv(0.0F, 0.75F).setLight(light);
+				builder.addVertex(poseStack.last().pose(), halfSize, barHeight, 0.001F).setColor(0, 0, 0, barAlpha).setUv(1.0F, 0.75F).setLight(light);
+				builder.addVertex(poseStack.last().pose(), halfSize, 0, 0.001F).setColor(0, 0, 0, barAlpha).setUv(1.0F, 0.5F).setLight(light);
 			}
 		}
 
 		// Text
 		{
-			final int textColor = HexFormat.fromHexDigits(NeatConfig.instance.textColor());
+			// Apply alpha to text color
+			int baseTextColor = HexFormat.fromHexDigits(NeatConfig.instance.textColor());
+			int textAlpha = (int) (255 * alpha);
+			int textColor = (textAlpha << 24) | (baseTextColor & 0x00FFFFFF);
 			final int black = 0;
 
 			// Name
@@ -315,7 +337,9 @@ public class HealthBarRenderer {
 				DecimalFormat health_format = new DecimalFormat(NeatConfig.instance.decimalFormat());
 
 				if (NeatConfig.instance.showCurrentHP()) {
-					String hpStr = health_format.format(living.getHealth());
+					// Use animated health for text display too
+					float animatedHealth = HealthAnimationManager.getAnimatedHealth(living);
+					String hpStr = health_format.format(animatedHealth);
 					mc.font.drawInBatch(hpStr, 2, h, textColor, false, poseStack.last().pose(), buffers, Font.DisplayMode.NORMAL, black, light);
 				}
 				if (NeatConfig.instance.showMaxHP()) {
@@ -323,7 +347,9 @@ public class HealthBarRenderer {
 					mc.font.drawInBatch(maxHpStr, (int) (halfSize / healthValueTextScale * 2) - mc.font.width(maxHpStr) - 2, h, textColor, false, poseStack.last().pose(), buffers, Font.DisplayMode.NORMAL, black, light);
 				}
 				if (NeatConfig.instance.showPercentage()) {
-					String percStr = (int) (100 * living.getHealth() / living.getMaxHealth()) + "%";
+					// Use animated health for percentage display too
+					float animatedHealth = HealthAnimationManager.getAnimatedHealth(living);
+					String percStr = (int) (100 * animatedHealth / living.getMaxHealth()) + "%";
 					mc.font.drawInBatch(percStr, (int) (halfSize / healthValueTextScale) - mc.font.width(percStr) / 2.0F, h, textColor, false, poseStack.last().pose(), buffers, Font.DisplayMode.NORMAL, black, light);
 				}
 				if (NeatConfig.instance.enableDebugInfo() && mc.getDebugOverlay().showDebugScreen()) {

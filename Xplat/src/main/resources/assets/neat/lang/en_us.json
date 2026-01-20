@@ -33,7 +33,7 @@
   "neat.configuration.show_on_passive": "Show on Passive",
   "neat.configuration.icon_offset_x": "Icon Offset X",
   "neat.configuration.blacklist": "Blacklist",
-  "neat.options.title": "Neat Config",
+  "neat.options.title": "Cobblemon Neat Bunny Config",
   "text.autoconfig.neat-client.option.showOnBosses": "Display on Bosses",
   "text.autoconfig.neat-client.option.drawBackground": "Draw Background",
   "text.autoconfig.neat-client.option.backgroundPadding": "Background Padding",
@@ -67,5 +67,5 @@
   "text.autoconfig.neat-client.option.showOnPassive": "Show on Passive",
   "text.autoconfig.neat-client.option.iconOffsetX": "Icon Offset X",
   "text.autoconfig.neat-client.option.blacklist": "Blacklist",
-  "text.autoconfig.neat-client.title": "Neat Config"
+  "text.autoconfig.neat-client.title": "Cobblemon Neat Bunny Config"
 }

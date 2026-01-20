@@ -3,19 +3,18 @@
   "id": "neat",
   "version": "${version}",
 
-  "name": "Neat",
-  "description": "Minimalistic Functional Unit Plates for the modern Minecrafter",
+  "name": "Cobblemon Neat Bunny",
+  "description": "A Cobblemon-focused fork of Neat with smooth health bar animations and fade-out effects",
   "authors": [
+    "BunnyDevCorner",
     "Vazkii",
     "williewillus",
     "Alwinfy",
     "Uraneptus"
   ],
   "contact": {
-    "irc": "ircs://irc.esper.net:6697/vazkii",
-    "email": "~williewillus/violet-moon@lists.sr.ht",
-    "sources": "https://github.com/VazkiiMods/Neat",
-    "issues": "https://github.com/VazkiiMods/Neat/issues"
+    "sources": "https://github.com/bunnyDevCorner/Neat",
+    "issues": "https://github.com/bunnyDevCorner/Neat/issues"
   },
   "custom": {
     "modmenu": {

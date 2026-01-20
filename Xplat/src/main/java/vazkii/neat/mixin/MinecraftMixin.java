@@ -7,6 +7,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import vazkii.neat.HealthAnimationManager;
 import vazkii.neat.ToggleKeybind;
 
 @Mixin(Minecraft.class)
@@ -14,5 +15,10 @@ public class MinecraftMixin {
 	@Inject(at = @At("HEAD"), method = "handleKeybinds")
 	private void neat_keybind(CallbackInfo ci) {
 		ToggleKeybind.handle();
+	}
+	
+	@Inject(at = @At("HEAD"), method = "tick")
+	private void neat_tick(CallbackInfo ci) {
+		HealthAnimationManager.tick();
 	}
 }
