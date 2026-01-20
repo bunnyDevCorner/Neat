@@ -23,7 +23,7 @@ public class NeatFabricConfig {
 		return AutoConfig.getConfigScreen(Client.class, parent);
 	}
 
-	@Config(name = "neat-client")
+	@Config(name = "cobblemon-neat-bunny-client")
 	private static class Client implements NeatConfig.ConfigAccess, ConfigData {
 		@Comment("Maximum distance in blocks at which health bars should render")
 		private int maxDistance;

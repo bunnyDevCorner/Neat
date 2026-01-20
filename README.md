@@ -76,7 +76,7 @@ See [CHANGELOG.md](CHANGELOG.md) for a detailed list of changes.
 
 ## ⚠️ Known Issues
 
-- **Health Bar Animation Bug**: On certain entities, when they first take damage, the health bar animation may not display correctly. Respawn the entity to fix this issue. This is a known bug and is on the list to be fixed.
+- **Cobblemon Starter Health Bar Bug**: When you first choose your starter Pokemon in Cobblemon, the health bar animation may not display correctly when they take damage. **Workaround**: Spawn your starter Pokemon, put them back in the cobble ball, then spawn them again - the health bar should then be accurate. This is a known bug specific to Cobblemon starters and is on the list to be fixed. If you encounter this issue with other Pokemon or find additional information, please report it on the [GitHub Issues page](https://github.com/bunnyDevCorner/Neat/issues).
 
 ## 🤝 Contributing
 
