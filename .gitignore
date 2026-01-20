@@ -28,3 +28,6 @@ build/
 ## Jars
 *.jar
 !/gradle/wrapper/gradle-wrapper.jar
+
+.md
+.log
