@@ -92,7 +92,7 @@ public class NeatFabricConfig {
 		private List<String> blacklist;
 
 		public Client() {
-			maxDistance = 12;
+			maxDistance = 8;
 			maxDistanceWithoutLineOfSight = 8;
 			renderInF1 = false;
 			heightAbove = 1.0D;

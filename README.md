@@ -74,6 +74,10 @@ Built JAR files will be located in `Fabric/build/libs/`.
 
 See [CHANGELOG.md](CHANGELOG.md) for a detailed list of changes.
 
+## ⚠️ Known Issues
+
+- **Health Bar Animation Bug**: On certain entities, when they first take damage, the health bar animation may not display correctly. Respawn the entity to fix this issue. This is a known bug and is on the list to be fixed.
+
 ## 🤝 Contributing
 
 This is a specialized fork for Cobblemon. If you find bugs or have suggestions, please open an issue on the [GitHub repository](https://github.com/bunnyDevCorner/Neat/issues).

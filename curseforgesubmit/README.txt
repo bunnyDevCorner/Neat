@@ -6,7 +6,7 @@ This directory contains everything you need to submit the mod to CurseForge.
 
 FILES INCLUDED:
 ---------------
-1. Neat-1.21.1-41-FABRIC.jar
+1. CobblemonNeatBunny-1.21.1-41-FABRIC.jar
    → The mod file to upload to CurseForge
 
 2. CURSEFORGE_DESCRIPTION.md
@@ -28,7 +28,7 @@ QUICK START:
 -----------
 1. Read SUBMISSION_GUIDE.md for detailed instructions
 2. Copy content from CURSEFORGE_DESCRIPTION.md into project description
-3. Upload Neat-1.21.1-41-FABRIC.jar as your first release
+3. Upload CobblemonNeatBunny-1.21.1-41-FABRIC.jar as your first release
 4. Use CHANGELOG.md content for the release changelog
 
 IMPORTANT REMINDERS:
