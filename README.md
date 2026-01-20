@@ -1,25 +1,69 @@
-# Neat
-Functional minimalistic Unit Frames for the modern Minecrafter
+# Neat (Cobblemon Fork)
 
-## Support plan
-Due to Mojangs fast version changing, it's impossible to support all versions at the same time.
-Because of this Neat will from now on only support two Minecraft Versions simultaneously, a Long-Term-Support (LTS) version and the newest available version.
-I will choose the LTS version myself based on what feels like the currently most popular version.
-The two supported versions are currently:
-- LTS: 1.21.1
-- Newest: 1.21.10 (currently wip)
+A fork of [Neat](https://github.com/VazkiiMods/Neat) specifically built for **Cobblemon 1.7.1** on **Minecraft 1.21.1** with **Fabric 0.18.4**.
 
-## Release Process
-Neat's release process is mostly automated. Here's the steps:
+Functional minimalistic Unit Frames for the modern Minecrafter.
 
-1. Pull master so you're up to date, make sure everything is committed
-2. Run `git tag -a release-<mc_version>-<build_number>`. If you don't know or remember what those are, look at `gradle.properties`
-3. In the editor that pops up, write the changelog
-4. In `gradle.properties`, increment the build_number by one for the next version. Commit this.
-5. Push master and the release tag: `git push origin master release-<mc_version>-<build_number>`
-6. Shortly after, the mod should be automatically uploaded to GitHub's release tab, Modrinth, and CurseForge.
+## About This Fork
 
-## Signing
-Releases are signed with the Violet Moon signing key, see [this
-page](https://github.com/VazkiiMods/.github/blob/main/security/README.md) for information
-about how to verify the artifacts.
+This is a specialized fork of the original Neat mod, maintained specifically for Cobblemon servers. This fork **requires Cobblemon** to function.
+
+### Target Versions
+- **Cobblemon**: 1.7.1+ (required)
+- **Minecraft**: 1.21.1
+- **Fabric Loader**: 0.18.4
+- **Fabric API**: 0.116.4+1.21.1
+
+### Key Features
+- Health bars for entities (mobs, players, bosses)
+- Customizable display options
+- Optimized for Cobblemon gameplay
+- Fabric-only support (NeoForge excluded from this fork)
+
+## Requirements
+
+- **Minecraft**: 1.21.1
+- **Fabric Loader**: 0.18.4
+- **Fabric API**: 0.116.4+1.21.1
+
+**Note:** This fork is designed for use with Cobblemon 1.7.1 servers. Please check the CurseForge page for compatibility information.
+
+## Original Project
+
+This project is a fork of [Neat by VazkiiMods](https://github.com/VazkiiMods/Neat).
+
+**Original Authors:**
+- Vazkii
+- williewillus
+- Alwinfy
+- Uraneptus
+
+## Building
+
+### Prerequisites
+- Java 21 (JDK)
+- Gradle (included via wrapper)
+
+### Build Commands
+
+```powershell
+# Clean and build
+.\gradlew.bat clean build
+
+# Build only Fabric module
+.\gradlew.bat :Fabric:build
+```
+
+Built JAR files will be located in `Fabric/build/libs/`.
+
+## License
+
+This project maintains the same license as the original Neat mod:
+- Code: MIT License
+- Assets: CC BY-NC-SA 3.0
+
+See [LICENSE.txt](LICENSE.txt) for full details.
+
+## Credits
+
+This fork is based on the excellent work by the original Neat team. All credit for the original mod goes to VazkiiMods and contributors.

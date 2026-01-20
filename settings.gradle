@@ -21,4 +21,6 @@ plugins {
 }
 
 rootProject.name = 'Neat'
-include("Xplat", "Fabric", "NeoForge")
+include("Xplat", "Fabric")
+// NeoForge excluded - Fabric-only build
+// include("NeoForge")
