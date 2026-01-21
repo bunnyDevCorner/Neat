@@ -110,7 +110,7 @@ public class NeatFabricConfig {
 			hpTextHeight = 14;
 			showMaxHP = false;
 			showCurrentHP = false;
-			showPercentage = true;
+			showPercentage = false;
 			showOnPassive = true;
 			showOnHostile = true;
 			showOnPlayers = false;
@@ -118,7 +118,7 @@ public class NeatFabricConfig {
 			showOnlyFocused = false;
 			showFullHealth = true;
 			enableDebugInfo = false;
-			showEntityName = true;
+			showEntityName = false;
 			nameTagRenderBehavior = NeatConfig.NameTagRenderBehavior.WHEN_NO_HEALTHBAR;
 			iconOffsetX = 0.0;
 			iconOffsetY = 0.0;
