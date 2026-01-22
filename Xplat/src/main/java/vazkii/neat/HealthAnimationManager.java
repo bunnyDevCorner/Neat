@@ -170,38 +170,4 @@ public class HealthAnimationManager {
 			return !seenEntities.contains(id) && (fadeState == null || !fadeState.isFadingOut);
 		});
 	}
-	
-	/**
-	 * Cleans up health tracking for entities that are no longer in the world.
-	 * This is called automatically during tick, but can be called manually if needed.
-	 */
-	public static void cleanup() {
-		Minecraft mc = Minecraft.getInstance();
-		if (mc.level == null) {
-			animatedHealth.clear();
-			fadeStates.clear();
-			return;
-		}
-		
-		// Build set of current entity UUIDs
-		Set<UUID> currentEntities = new HashSet<>();
-		for (Entity entity : mc.level.entitiesForRendering()) {
-			if (entity instanceof LivingEntity) {
-				currentEntities.add(entity.getUUID());
-			}
-		}
-		
-		// Remove entries for entities that no longer exist and aren't fading
-		animatedHealth.entrySet().removeIf(entry -> {
-			UUID id = entry.getKey();
-			FadeState fadeState = fadeStates.get(id);
-			return !currentEntities.contains(id) && (fadeState == null || !fadeState.isFadingOut);
-		});
-		
-		fadeStates.entrySet().removeIf(entry -> {
-			UUID id = entry.getKey();
-			FadeState fadeState = entry.getValue();
-			return !currentEntities.contains(id) && !fadeState.isFadingOut;
-		});
-	}
 }

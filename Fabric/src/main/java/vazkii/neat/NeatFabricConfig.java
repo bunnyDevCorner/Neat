@@ -7,20 +7,13 @@ import me.shedaniel.autoconfig.annotation.ConfigEntry;
 import me.shedaniel.autoconfig.serializer.JanksonConfigSerializer;
 import me.shedaniel.cloth.clothconfig.shadowed.blue.endless.jankson.Comment;
 
-import net.minecraft.client.gui.screens.Screen;
-
 import java.util.List;
-import java.util.function.Supplier;
 
 public class NeatFabricConfig {
 
 	public static void init() {
 		AutoConfig.register(Client.class, JanksonConfigSerializer::new);
 		NeatConfig.instance = AutoConfig.getConfigHolder(Client.class).getConfig();
-	}
-
-	public static Supplier<Screen> getConfigScreen(Screen parent) {
-		return AutoConfig.getConfigScreen(Client.class, parent);
 	}
 
 	@Config(name = "cobblemon-neat-bunny-client")
