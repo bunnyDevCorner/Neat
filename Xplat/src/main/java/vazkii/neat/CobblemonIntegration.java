@@ -8,6 +8,9 @@ import net.minecraft.world.entity.LivingEntity;
  * 
  * Key insight: During battle, Cobblemon uses a cloned "effectedPokemon" for wild/NPC Pokemon.
  * All battle damage goes to this clone, so we must read health from effectedPokemon to get accurate values.
+ * 
+ * For UI sync: The client-side battle system (ClientBattlePokemon) provides health values that are
+ * perfectly synced with Cobblemon's native UI, including smooth animations and ally/enemy visibility rules.
  */
 public class CobblemonIntegration {
 	
@@ -18,7 +21,7 @@ public class CobblemonIntegration {
 	private static java.lang.reflect.Method getMaxHealthMethod = null;
 	private static java.lang.reflect.Method pokemonGetUuidMethod = null;
 	
-	// Cached reflection data - Battle system access
+	// Cached reflection data - Server-side Battle system access
 	private static java.lang.reflect.Method getBattleIdMethod = null;
 	private static Class<?> battleRegistryClass = null;
 	private static java.lang.reflect.Method getBattleMethod = null;
@@ -27,9 +30,38 @@ public class CobblemonIntegration {
 	private static java.lang.reflect.Method getEffectedPokemonMethod = null;
 	private static java.lang.reflect.Method getOriginalPokemonMethod = null;
 	
+	// Cached reflection data - Client-side Battle system access (for UI sync)
+	private static Class<?> cobblemonClientClass = null;
+	private static Object cobblemonClientInstance = null;
+	private static java.lang.reflect.Method getClientBattleMethod = null;
+	private static Class<?> clientBattleClass = null;
+	private static java.lang.reflect.Method getSide1Method = null;
+	private static java.lang.reflect.Method getSide2Method = null;
+	private static Class<?> clientBattleSideClass = null;
+	private static java.lang.reflect.Method getActiveClientBattlePokemonMethod = null;
+	private static Class<?> activeClientBattlePokemonClass = null;
+	private static java.lang.reflect.Method getClientBattlePokemonMethod = null;
+	private static Class<?> clientBattlePokemonClass = null;
+	private static java.lang.reflect.Method getClientHpValueMethod = null;
+	private static java.lang.reflect.Method getClientMaxHpMethod = null;
+	private static java.lang.reflect.Method isHpFlatMethod = null;
+	private static java.lang.reflect.Method getClientPokemonUuidMethod = null;
+	
 	private static boolean initialized = false;
 	private static boolean cobblemonAvailable = false;
 	private static boolean battleSystemAvailable = false;
+	private static boolean clientBattleSystemAvailable = false;
+	
+	/**
+	 * Record containing client-side battle health information.
+	 * This data is synced with Cobblemon's native UI.
+	 * 
+	 * @param hpValue Current HP - exact value if isHpFlat=true, ratio (0.0-1.0) if isHpFlat=false
+	 * @param maxHp Maximum HP
+	 * @param isHpFlat true for allies (exact HP shown), false for enemies (percentage shown)
+	 * @param inBattle Whether the Pokemon is actively in a client-side battle
+	 */
+	public record ClientBattleHealthInfo(float hpValue, float maxHp, boolean isHpFlat, boolean inBattle) {}
 	
 	/**
 	 * Initialize Cobblemon integration by loading classes via reflection.
@@ -93,9 +125,52 @@ public class CobblemonIntegration {
 			battleSystemAvailable = true;
 			System.out.println("[Neat] Cobblemon battle system integration initialized!");
 			
+			// Try to initialize client-side battle system for UI sync
+			initializeClientBattleSystem();
+			
 		} catch (ClassNotFoundException | NoSuchMethodException e) {
 			battleSystemAvailable = false;
 			System.out.println("[Neat] Cobblemon battle system not fully accessible - battle-only mode may not work correctly");
+		}
+	}
+	
+	/**
+	 * Initialize client-side battle system reflection for UI-synced health values.
+	 * This allows reading health from ClientBattlePokemon which is perfectly synced with Cobblemon's UI.
+	 */
+	private static void initializeClientBattleSystem() {
+		try {
+			// CobblemonClient.INSTANCE.getBattle() -> ClientBattle?
+			cobblemonClientClass = Class.forName("com.cobblemon.mod.common.client.CobblemonClient");
+			cobblemonClientInstance = cobblemonClientClass.getField("INSTANCE").get(null);
+			getClientBattleMethod = cobblemonClientClass.getMethod("getBattle");
+			
+			// ClientBattle.getSide1(), getSide2() -> ClientBattleSide
+			clientBattleClass = Class.forName("com.cobblemon.mod.common.client.battle.ClientBattle");
+			getSide1Method = clientBattleClass.getMethod("getSide1");
+			getSide2Method = clientBattleClass.getMethod("getSide2");
+			
+			// ClientBattleSide.getActiveClientBattlePokemon() -> List<ActiveClientBattlePokemon>
+			clientBattleSideClass = Class.forName("com.cobblemon.mod.common.client.battle.ClientBattleSide");
+			getActiveClientBattlePokemonMethod = clientBattleSideClass.getMethod("getActiveClientBattlePokemon");
+			
+			// ActiveClientBattlePokemon.getBattlePokemon() -> ClientBattlePokemon?
+			activeClientBattlePokemonClass = Class.forName("com.cobblemon.mod.common.client.battle.ActiveClientBattlePokemon");
+			getClientBattlePokemonMethod = activeClientBattlePokemonClass.getMethod("getBattlePokemon");
+			
+			// ClientBattlePokemon fields: hpValue, maxHp, isHpFlat, uuid
+			clientBattlePokemonClass = Class.forName("com.cobblemon.mod.common.client.battle.ClientBattlePokemon");
+			getClientHpValueMethod = clientBattlePokemonClass.getMethod("getHpValue");
+			getClientMaxHpMethod = clientBattlePokemonClass.getMethod("getMaxHp");
+			isHpFlatMethod = clientBattlePokemonClass.getMethod("isHpFlat");
+			getClientPokemonUuidMethod = clientBattlePokemonClass.getMethod("getUuid");
+			
+			clientBattleSystemAvailable = true;
+			System.out.println("[Neat] Cobblemon client battle system integration initialized - UI sync enabled!");
+			
+		} catch (ClassNotFoundException | NoSuchMethodException | NoSuchFieldException | IllegalAccessException e) {
+			clientBattleSystemAvailable = false;
+			System.out.println("[Neat] Cobblemon client battle system not accessible - falling back to server-side health values");
 		}
 	}
 	
@@ -255,5 +330,118 @@ public class CobblemonIntegration {
 		}
 		
 		return null;
+	}
+	
+	/**
+	 * Get client-side battle health information for a Pokemon entity.
+	 * This reads from ClientBattlePokemon which is synced with Cobblemon's native UI.
+	 * 
+	 * @param entity The Pokemon entity to get health for
+	 * @return ClientBattleHealthInfo if in client battle, null otherwise
+	 */
+	public static ClientBattleHealthInfo getClientBattleHealth(LivingEntity entity) {
+		if (!isPokemonEntity(entity) || !clientBattleSystemAvailable) {
+			return null;
+		}
+		
+		try {
+			// Get the Pokemon's UUID
+			Object pokemon = getPokemonMethod.invoke(entity);
+			if (pokemon == null) {
+				return null;
+			}
+			java.util.UUID pokemonUuid = (java.util.UUID) pokemonGetUuidMethod.invoke(pokemon);
+			
+			// Find the ClientBattlePokemon by UUID
+			Object clientBattlePokemon = findClientBattlePokemon(pokemonUuid);
+			if (clientBattlePokemon == null) {
+				return null;
+			}
+			
+			// Extract health data from ClientBattlePokemon
+			float hpValue = (float) getClientHpValueMethod.invoke(clientBattlePokemon);
+			float maxHp = (float) getClientMaxHpMethod.invoke(clientBattlePokemon);
+			boolean isHpFlat = (boolean) isHpFlatMethod.invoke(clientBattlePokemon);
+			
+			return new ClientBattleHealthInfo(hpValue, maxHp, isHpFlat, true);
+			
+		} catch (Exception e) {
+			return null;
+		}
+	}
+	
+	/**
+	 * Find a ClientBattlePokemon by UUID in the current client battle.
+	 * Searches both side1 and side2's active pokemon lists.
+	 * 
+	 * @param pokemonUuid The UUID of the Pokemon to find
+	 * @return The ClientBattlePokemon object if found, null otherwise
+	 */
+	private static Object findClientBattlePokemon(java.util.UUID pokemonUuid) {
+		if (!clientBattleSystemAvailable || cobblemonClientInstance == null) {
+			return null;
+		}
+		
+		try {
+			// Get current client battle
+			Object clientBattle = getClientBattleMethod.invoke(cobblemonClientInstance);
+			if (clientBattle == null) {
+				return null; // Not in a battle
+			}
+			
+			// Search side1
+			Object side1 = getSide1Method.invoke(clientBattle);
+			Object result = searchSideForPokemon(side1, pokemonUuid);
+			if (result != null) {
+				return result;
+			}
+			
+			// Search side2
+			Object side2 = getSide2Method.invoke(clientBattle);
+			return searchSideForPokemon(side2, pokemonUuid);
+			
+		} catch (Exception e) {
+			return null;
+		}
+	}
+	
+	/**
+	 * Search a battle side's active pokemon list for a matching UUID.
+	 * 
+	 * @param side The ClientBattleSide to search
+	 * @param pokemonUuid The UUID to match
+	 * @return The ClientBattlePokemon if found, null otherwise
+	 */
+	private static Object searchSideForPokemon(Object side, java.util.UUID pokemonUuid) {
+		if (side == null) {
+			return null;
+		}
+		
+		try {
+			@SuppressWarnings("unchecked")
+			java.util.List<Object> activeList = (java.util.List<Object>) getActiveClientBattlePokemonMethod.invoke(side);
+			
+			for (Object activePokemon : activeList) {
+				Object clientBattlePokemon = getClientBattlePokemonMethod.invoke(activePokemon);
+				if (clientBattlePokemon != null) {
+					java.util.UUID uuid = (java.util.UUID) getClientPokemonUuidMethod.invoke(clientBattlePokemon);
+					if (pokemonUuid.equals(uuid)) {
+						return clientBattlePokemon;
+					}
+				}
+			}
+		} catch (Exception e) {
+			// Search failed
+		}
+		
+		return null;
+	}
+	
+	/**
+	 * Check if client-side battle system is available.
+	 */
+	public static boolean isClientBattleSystemAvailable() {
+		initialize();
+		return clientBattleSystemAvailable;
 	}
 }

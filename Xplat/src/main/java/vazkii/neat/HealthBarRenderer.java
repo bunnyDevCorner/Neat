@@ -36,13 +36,53 @@ import java.util.*;
 
 public class HealthBarRenderer {
 
+	// Cache for client battle health info to avoid repeated lookups in the same render pass
+	private static final Map<UUID, CobblemonIntegration.ClientBattleHealthInfo> clientHealthCache = new HashMap<>();
+	private static int lastCacheTick = -1;
+	
+	/**
+	 * Get cached client battle health info for an entity.
+	 * Clears cache each tick to ensure fresh data.
+	 */
+	private static CobblemonIntegration.ClientBattleHealthInfo getCachedClientHealth(LivingEntity entity) {
+		// Use game tick count to invalidate cache - ensures fresh data each tick
+		int currentTick = (int) (entity.level().getGameTime() & Integer.MAX_VALUE);
+		if (currentTick != lastCacheTick) {
+			clientHealthCache.clear();
+			lastCacheTick = currentTick;
+		}
+		
+		UUID id = entity.getUUID();
+		if (!clientHealthCache.containsKey(id)) {
+			clientHealthCache.put(id, CobblemonIntegration.getClientBattleHealth(entity));
+		}
+		return clientHealthCache.get(id);
+	}
+
 	/**
 	 * Get the effective current health for an entity.
-	 * For Cobblemon Pokemon in battle, returns battle health from effectedPokemon.
-	 * Otherwise returns the entity's standard health.
+	 * Priority: Client-side battle data (UI synced) -> Server-side battle data -> Standard health
+	 * 
+	 * For Cobblemon Pokemon:
+	 * - If in client battle: uses ClientBattlePokemon.hpValue (synced with Cobblemon's UI)
+	 * - If isHpFlat=true (ally): hpValue is exact HP
+	 * - If isHpFlat=false (enemy): hpValue is ratio (0.0-1.0), converted to HP
 	 */
 	public static float getEffectiveCurrentHealth(LivingEntity entity) {
 		if (CobblemonIntegration.isPokemonEntity(entity)) {
+			// Try client-side battle data first (perfectly synced with Cobblemon UI)
+			CobblemonIntegration.ClientBattleHealthInfo clientInfo = getCachedClientHealth(entity);
+			if (clientInfo != null && clientInfo.inBattle()) {
+				if (clientInfo.isHpFlat()) {
+					// Ally: hpValue is exact HP
+					return clientInfo.hpValue();
+				} else {
+					// Enemy: hpValue is ratio (0.0-1.0), convert to HP
+					return clientInfo.hpValue() * clientInfo.maxHp();
+				}
+			}
+			
+			// Fallback to server-side battle data
 			int pokemonHealth = CobblemonIntegration.getPokemonCurrentHealth(entity);
 			if (pokemonHealth >= 0) {
 				return pokemonHealth;
@@ -53,17 +93,37 @@ public class HealthBarRenderer {
 
 	/**
 	 * Get the effective max health for an entity.
-	 * For Cobblemon Pokemon in battle, returns max health from effectedPokemon.
-	 * Otherwise returns the entity's standard max health.
+	 * Priority: Client-side battle data (UI synced) -> Server-side battle data -> Standard max health
 	 */
 	public static float getEffectiveMaxHealth(LivingEntity entity) {
 		if (CobblemonIntegration.isPokemonEntity(entity)) {
+			// Try client-side battle data first
+			CobblemonIntegration.ClientBattleHealthInfo clientInfo = getCachedClientHealth(entity);
+			if (clientInfo != null && clientInfo.inBattle()) {
+				return clientInfo.maxHp();
+			}
+			
+			// Fallback to server-side battle data
 			int pokemonMaxHealth = CobblemonIntegration.getPokemonMaxHealth(entity);
 			if (pokemonMaxHealth >= 0) {
 				return pokemonMaxHealth;
 			}
 		}
 		return entity.getMaxHealth();
+	}
+	
+	/**
+	 * Check if a Pokemon entity is an enemy (opponent) in the current battle.
+	 * Used to determine if HP should be shown as percentage vs exact value.
+	 * 
+	 * @return true if enemy (isHpFlat=false), false if ally or not in battle
+	 */
+	public static boolean isEnemyPokemon(LivingEntity entity) {
+		if (!CobblemonIntegration.isPokemonEntity(entity)) {
+			return false;
+		}
+		CobblemonIntegration.ClientBattleHealthInfo clientInfo = getCachedClientHealth(entity);
+		return clientInfo != null && clientInfo.inBattle() && !clientInfo.isHpFlat();
 	}
 
 	private static Entity getEntityLookedAt(Entity e) {
@@ -373,14 +433,25 @@ public class HealthBarRenderer {
 
 				int h = NeatConfig.instance.hpTextHeight();
 				DecimalFormat health_format = new DecimalFormat(NeatConfig.instance.decimalFormat());
+				
+				// Check if we should hide exact HP for this entity (enemy Pokemon with config enabled)
+				boolean hideExactHp = NeatConfig.instance.cobblemonRespectEnemyHpHiding() && isEnemyPokemon(living);
 
 				if (NeatConfig.instance.showCurrentHP()) {
 					// Use animated health for text display too
 					float animatedHealth = HealthAnimationManager.getAnimatedHealth(living);
-					String hpStr = health_format.format(animatedHealth);
+					String hpStr;
+					if (hideExactHp) {
+						// Show percentage for enemy Pokemon (matches Cobblemon's UI behavior)
+						int percent = (int) (100 * animatedHealth / getEffectiveMaxHealth(living));
+						hpStr = percent + "%";
+					} else {
+						hpStr = health_format.format(animatedHealth);
+					}
 					mc.font.drawInBatch(hpStr, 2, h, textColor, false, poseStack.last().pose(), buffers, Font.DisplayMode.NORMAL, black, light);
 				}
-				if (NeatConfig.instance.showMaxHP()) {
+				if (NeatConfig.instance.showMaxHP() && !hideExactHp) {
+					// Don't show max HP for enemy Pokemon when respecting HP hiding
 					String maxHpStr = ChatFormatting.BOLD + health_format.format(getEffectiveMaxHealth(living));
 					mc.font.drawInBatch(maxHpStr, (int) (halfSize / healthValueTextScale * 2) - mc.font.width(maxHpStr) - 2, h, textColor, false, poseStack.last().pose(), buffers, Font.DisplayMode.NORMAL, black, light);
 				}
@@ -388,7 +459,10 @@ public class HealthBarRenderer {
 					// Use animated health for percentage display too
 					float animatedHealth = HealthAnimationManager.getAnimatedHealth(living);
 					String percStr = (int) (100 * animatedHealth / getEffectiveMaxHealth(living)) + "%";
-					mc.font.drawInBatch(percStr, (int) (halfSize / healthValueTextScale) - mc.font.width(percStr) / 2.0F, h, textColor, false, poseStack.last().pose(), buffers, Font.DisplayMode.NORMAL, black, light);
+					// Only show percentage if not already showing it in place of current HP
+					if (!hideExactHp || !NeatConfig.instance.showCurrentHP()) {
+						mc.font.drawInBatch(percStr, (int) (halfSize / healthValueTextScale) - mc.font.width(percStr) / 2.0F, h, textColor, false, poseStack.last().pose(), buffers, Font.DisplayMode.NORMAL, black, light);
+					}
 				}
 				if (NeatConfig.instance.enableDebugInfo() && mc.getDebugOverlay().showDebugScreen()) {
 					var id = BuiltInRegistries.ENTITY_TYPE.getKey(living.getType());

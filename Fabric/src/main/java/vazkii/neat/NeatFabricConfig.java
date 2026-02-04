@@ -85,6 +85,8 @@ public class NeatFabricConfig {
 		private List<String> blacklist;
 		@Comment("Only show health bars for Cobblemon Pokemon when they are in battle (fades out after battle ends)")
 		private boolean cobblemonBattleOnly;
+		@Comment("Respect Cobblemon's enemy HP hiding - show percentage for enemy Pokemon instead of exact HP (matches Cobblemon's UI)")
+		private boolean cobblemonRespectEnemyHpHiding;
 
 		public Client() {
 			maxDistance = 48;
@@ -120,6 +122,7 @@ public class NeatFabricConfig {
 			decimalFormat = "#.##";
 			blacklist = NeatConfig.DEFAULT_DISABLED;
 			cobblemonBattleOnly = true;
+			cobblemonRespectEnemyHpHiding = true;
 		}
 
 		@Override
@@ -285,6 +288,11 @@ public class NeatFabricConfig {
 		@Override
 		public boolean cobblemonBattleOnly() {
 			return cobblemonBattleOnly;
+		}
+
+		@Override
+		public boolean cobblemonRespectEnemyHpHiding() {
+			return cobblemonRespectEnemyHpHiding;
 		}
 	}
 }
