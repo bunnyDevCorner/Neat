@@ -14,6 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class HealthAnimationManager {
 	private static final Map<UUID, Float> animatedHealth = new ConcurrentHashMap<>();
 	private static final Map<UUID, FadeState> fadeStates = new ConcurrentHashMap<>();
+	private static final Map<UUID, Boolean> wasInBattle = new ConcurrentHashMap<>(); // Tracks previous battle state for Pokemon
 	private static final float LERP_SPEED = 0.15F; // Higher = faster animation (0.0 to 1.0)
 	private static final float FADE_OUT_SPEED = 0.08F; // Higher = faster fade (0.0 to 1.0)
 	private static final float FADE_OUT_DURATION_TICKS = 20.0F; // How many ticks to fade out (1 second at 20 TPS)
@@ -52,10 +53,11 @@ public class HealthAnimationManager {
 	/**
 	 * Gets the animated health value for an entity, creating it if it doesn't exist.
 	 * This should be called during rendering to get the smoothly interpolated health.
+	 * Uses effective health which accounts for Cobblemon's battle system.
 	 */
 	public static float getAnimatedHealth(LivingEntity entity) {
 		UUID id = entity.getUUID();
-		float targetHealth = entity.getHealth();
+		float targetHealth = HealthBarRenderer.getEffectiveCurrentHealth(entity);
 		
 		// If we don't have an entry for this entity, initialize it with current health
 		if (!animatedHealth.containsKey(id)) {
@@ -97,6 +99,7 @@ public class HealthAnimationManager {
 			// Clear all entries when not in a world
 			animatedHealth.clear();
 			fadeStates.clear();
+			wasInBattle.clear();
 			return;
 		}
 		
@@ -109,19 +112,39 @@ public class HealthAnimationManager {
 				UUID id = living.getUUID();
 				seenEntities.add(id);
 				
-				float targetHealth = living.getHealth();
+				// Use effective health to account for Cobblemon's battle system
+				float targetHealth = HealthBarRenderer.getEffectiveCurrentHealth(living);
 				boolean isDead = living.isDeadOrDying() || targetHealth <= 0.0F;
 				
 				// Initialize fade state if needed
 				FadeState fadeState = fadeStates.computeIfAbsent(id, k -> new FadeState());
 				
-				// If entity is dead, start fade-out
-				if (isDead) {
+				// Check for Cobblemon battle state transitions (battle ended -> fade out)
+				boolean isPokemon = CobblemonIntegration.isPokemonEntity(living);
+				boolean isCurrentlyInBattle = isPokemon && CobblemonIntegration.isInBattle(living);
+				boolean wasInBattlePreviously = wasInBattle.getOrDefault(id, false);
+				
+				// Update battle state tracking
+				if (isPokemon) {
+					wasInBattle.put(id, isCurrentlyInBattle);
+				}
+				
+				// Determine if we should start fade-out
+				boolean shouldFadeOut = isDead;
+				
+				// For Pokemon with cobblemonBattleOnly enabled: fade out when battle ends
+				if (isPokemon && NeatConfig.instance.cobblemonBattleOnly()) {
+					if (wasInBattlePreviously && !isCurrentlyInBattle) {
+						// Battle just ended for this Pokemon - start fade out
+						shouldFadeOut = true;
+					}
+				}
+				
+				if (shouldFadeOut) {
 					fadeState.startFadeOut();
-				} else {
-					// Entity is alive, reset fade state
+				} else if (!fadeState.isFadingOut) {
+					// Entity is alive and not fading, reset fade state
 					fadeState.alpha = 1.0F;
-					fadeState.isFadingOut = false;
 					fadeState.fadeOutTicks = 0;
 				}
 				
@@ -156,6 +179,7 @@ public class HealthAnimationManager {
 			// If fade-out is complete, remove the entry
 			if (shouldRemove) {
 				animatedHealth.remove(id);
+				wasInBattle.remove(id);
 				return true;
 			}
 			
@@ -169,5 +193,8 @@ public class HealthAnimationManager {
 			// Keep entry if entity exists or is fading out
 			return !seenEntities.contains(id) && (fadeState == null || !fadeState.isFadingOut);
 		});
+		
+		// Clean up wasInBattle for entities that no longer exist
+		wasInBattle.entrySet().removeIf(entry -> !seenEntities.contains(entry.getKey()));
 	}
 }

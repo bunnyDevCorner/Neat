@@ -83,10 +83,12 @@ public class NeatFabricConfig {
 		private String decimalFormat;
 		@Comment("Entity ID's that should not have bars rendered")
 		private List<String> blacklist;
+		@Comment("Only show health bars for Cobblemon Pokemon when they are in battle (fades out after battle ends)")
+		private boolean cobblemonBattleOnly;
 
 		public Client() {
-			maxDistance = 8;
-			maxDistanceWithoutLineOfSight = 8;
+			maxDistance = 48;
+			maxDistanceWithoutLineOfSight = 48;
 			renderInF1 = false;
 			heightAbove = 1.0D;
 			drawBackground = true;
@@ -111,12 +113,13 @@ public class NeatFabricConfig {
 			showOnlyFocused = false;
 			showFullHealth = true;
 			enableDebugInfo = false;
-			showEntityName = false;
+			showEntityName = true;
 			nameTagRenderBehavior = NeatConfig.NameTagRenderBehavior.WHEN_NO_HEALTHBAR;
 			iconOffsetX = 0.0;
 			iconOffsetY = 0.0;
 			decimalFormat = "#.##";
 			blacklist = NeatConfig.DEFAULT_DISABLED;
+			cobblemonBattleOnly = true;
 		}
 
 		@Override
@@ -277,6 +280,11 @@ public class NeatFabricConfig {
 		@Override
 		public List<String> blacklist() {
 			return blacklist;
+		}
+
+		@Override
+		public boolean cobblemonBattleOnly() {
+			return cobblemonBattleOnly;
 		}
 	}
 }

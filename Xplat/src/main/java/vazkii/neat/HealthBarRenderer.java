@@ -36,6 +36,36 @@ import java.util.*;
 
 public class HealthBarRenderer {
 
+	/**
+	 * Get the effective current health for an entity.
+	 * For Cobblemon Pokemon in battle, returns battle health from effectedPokemon.
+	 * Otherwise returns the entity's standard health.
+	 */
+	public static float getEffectiveCurrentHealth(LivingEntity entity) {
+		if (CobblemonIntegration.isPokemonEntity(entity)) {
+			int pokemonHealth = CobblemonIntegration.getPokemonCurrentHealth(entity);
+			if (pokemonHealth >= 0) {
+				return pokemonHealth;
+			}
+		}
+		return entity.getHealth();
+	}
+
+	/**
+	 * Get the effective max health for an entity.
+	 * For Cobblemon Pokemon in battle, returns max health from effectedPokemon.
+	 * Otherwise returns the entity's standard max health.
+	 */
+	public static float getEffectiveMaxHealth(LivingEntity entity) {
+		if (CobblemonIntegration.isPokemonEntity(entity)) {
+			int pokemonMaxHealth = CobblemonIntegration.getPokemonMaxHealth(entity);
+			if (pokemonMaxHealth >= 0) {
+				return pokemonMaxHealth;
+			}
+		}
+		return entity.getMaxHealth();
+	}
+
 	private static Entity getEntityLookedAt(Entity e) {
 		Entity foundEntity = null;
 		final double finalDistance = 32;
@@ -121,8 +151,9 @@ public class HealthBarRenderer {
 		} else {
 			// Use animated health for color calculation too
 			float animatedHealth = HealthAnimationManager.getAnimatedHealth(entity);
-			float health = Mth.clamp(animatedHealth, 0.0F, entity.getMaxHealth());
-			float hue = Math.max(0.0F, (health / entity.getMaxHealth()) / 3.0F - 0.07F);
+			float maxHealth = getEffectiveMaxHealth(entity);
+			float health = Mth.clamp(animatedHealth, 0.0F, maxHealth);
+			float hue = Math.max(0.0F, (health / maxHealth) / 3.0F - 0.07F);
 			return Mth.hsvToRgb(hue, 1.0F, 1.0F);
 		}
 	}
@@ -143,6 +174,13 @@ public class HealthBarRenderer {
 			return false;
 		}
 
+		// Cobblemon battle-only mode: only show health bars for Pokemon that are in battle
+		if (NeatConfig.instance.cobblemonBattleOnly() && CobblemonIntegration.isPokemonEntity(living)) {
+			if (!CobblemonIntegration.isInBattle(living)) {
+				return false;
+			}
+		}
+
 		var id = BuiltInRegistries.ENTITY_TYPE.getKey(living.getType());
 		if (NeatConfig.instance.blacklist().contains(id.toString())) {
 			return false;
@@ -160,7 +198,7 @@ public class HealthBarRenderer {
 		if (!NeatConfig.instance.showOnPlayers() && living instanceof Player) {
 			return false;
 		}
-		if (!NeatConfig.instance.showFullHealth() && living.getHealth() >= living.getMaxHealth()) {
+		if (!NeatConfig.instance.showFullHealth() && getEffectiveCurrentHealth(living) >= getEffectiveMaxHealth(living)) {
 			return false;
 		}
 		if (NeatConfig.instance.showOnlyFocused() && getEntityLookedAt(cameraEntity) != living) {
@@ -286,7 +324,7 @@ public class HealthBarRenderer {
 			// can temporarily exceed the max health.
 			// Use animated health for smooth transitions
 			float animatedHealth = HealthAnimationManager.getAnimatedHealth(living);
-			float maxHealth = Math.max(living.getHealth(), living.getMaxHealth());
+			float maxHealth = Math.max(getEffectiveCurrentHealth(living), getEffectiveMaxHealth(living));
 			float healthHalfSize = halfSize * (animatedHealth / maxHealth);
 			
 			// Apply alpha to health bar
@@ -343,13 +381,13 @@ public class HealthBarRenderer {
 					mc.font.drawInBatch(hpStr, 2, h, textColor, false, poseStack.last().pose(), buffers, Font.DisplayMode.NORMAL, black, light);
 				}
 				if (NeatConfig.instance.showMaxHP()) {
-					String maxHpStr = ChatFormatting.BOLD + health_format.format(living.getMaxHealth());
+					String maxHpStr = ChatFormatting.BOLD + health_format.format(getEffectiveMaxHealth(living));
 					mc.font.drawInBatch(maxHpStr, (int) (halfSize / healthValueTextScale * 2) - mc.font.width(maxHpStr) - 2, h, textColor, false, poseStack.last().pose(), buffers, Font.DisplayMode.NORMAL, black, light);
 				}
 				if (NeatConfig.instance.showPercentage()) {
 					// Use animated health for percentage display too
 					float animatedHealth = HealthAnimationManager.getAnimatedHealth(living);
-					String percStr = (int) (100 * animatedHealth / living.getMaxHealth()) + "%";
+					String percStr = (int) (100 * animatedHealth / getEffectiveMaxHealth(living)) + "%";
 					mc.font.drawInBatch(percStr, (int) (halfSize / healthValueTextScale) - mc.font.width(percStr) / 2.0F, h, textColor, false, poseStack.last().pose(), buffers, Font.DisplayMode.NORMAL, black, light);
 				}
 				if (NeatConfig.instance.enableDebugInfo() && mc.getDebugOverlay().showDebugScreen()) {
